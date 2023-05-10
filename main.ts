@@ -1,21 +1,31 @@
-
 let device_id = "2d5fc1"
 let useQuery = false
+let retcode_list =[
+    "ssuc",
+    "系统错误",
+    "执行未加电",
+    "I2C错误",
+    "非法电源",
+    
+]
 basic.forever(Update)
 radio.onReceivedString(OnReceivedString)
 input.onLogoEvent(TouchButtonEvent.Pressed, OnTouchButtonPressed)
-
 Start()
-
-
+function NewResponse(code:number,data: object){
+    let ret_data :object ={
+        "retcode": code,
+        
+        "msg":retcode_list[code], 
+        "data" :data
+    }
+}
 function OnTouchButtonPressed() {
     RemoteCall("OnTouchButtonPressed", null)
 }
-
 function OnReceivedString(receivedString: string) {
     CommonReceivedString(receivedString)
 }
-
 function RemoteCall(event_name: string, args: any = null) {
     let json_data_req = {
         "cmd":"remote_call_req",
@@ -28,46 +38,49 @@ function RemoteCall(event_name: string, args: any = null) {
     }
     serial.writeLine(str_data_req)
 }
-
-
-
+function CommonSend(sendString:string){
+    serial.writeLine(sendString)
+    radio.sendString(sendString)
+    
+}
+function CommonSendJson(json_data: object){
+    CommonSend(JSON.stringify(json_data))
+}
 function CommonReceivedString(receivedString:string){
     let json_data_rsp = JSON.parse(receivedString)
-    
-    if (json_data_rsp["cmd"] == "remote_call_req") {
-        switch (json_data_rsp["event_name"]) {
-            case "ButtonAPressed":
-                Forward(255)
-                break;
-            case "ButtonBPressed":
-                Backoff(255)
-                break;
-        }
+    switch (json_data_rsp["cmd"]){
+        case "remote_call_req":
+            switch (json_data_rsp["event_name"]) {
+                case "ButtonAPressed":
+                    Forward(255)
+                    json_data_rsp = NewResponse(0,{})
+                    CommonSendJson(json_data_rsp)
+                    break;
+                case "ButtonBPressed":
+                    Backoff(255)
+                    json_data_rsp = NewResponse(0, {})
+                    CommonSendJson(json_data_rsp)
+                    break;
+            }
+            break;
+        case "car_data_report_req":
+            json_data_rsp = NewResponse(0, {})
+            CommonSendJson(json_data_rsp)
+            break;
     }
-    
-    serial.writeString("recv_msg")
-    serial.writeString(receivedString)
-
-
 }
-
-
-
 function RunMotor4(v1: number, v2: number, v3: number, v4: number) {
     SuperBit.MotorRun(SuperBit.enMotors.M1, v1)
     SuperBit.MotorRun(SuperBit.enMotors.M2, v2)
     SuperBit.MotorRun(SuperBit.enMotors.M3, v3)
     SuperBit.MotorRun(SuperBit.enMotors.M4, v4)
 }
-
-
 function Forward(speed: number) {
     RunMotor4(speed, speed, speed, speed)
 }
 function Backoff(speed: number) {
     RunMotor4(-speed, -speed, -speed, -speed)
 }
-
 function MoveLeft(speed: number) {
     RunMotor4(-speed, -speed, speed, speed)
 }
@@ -80,10 +93,6 @@ function SpinLeft(speed: number) {
 function SpinRight(speed: number) {
 
 }
-
-
-
-
 function Start() {
     serial.redirect(
         SerialPin.USB_TX,
@@ -95,10 +104,7 @@ function Start() {
 
     input.setAccelerometerRange(AcceleratorRange.OneG )
 
-    MoveLeft(255)
 }
-
-
 function Update() {
 
     let pitch = input.rotation(Rotation.Pitch)
@@ -118,16 +124,13 @@ function Update() {
         "temperature": temperature,
 
     } 
-    let str_data_req = JSON.stringify(json_data_req)
+    CommonSendJson(json_data_req)
     if (input.buttonIsPressed(Button.A)) {
         RemoteCall("ButtonAPressed",null)
     }
     if (input.buttonIsPressed(Button.B)) {
         RemoteCall("ButtonBPressed", null)
     }
-    serial.writeLine(str_data_req)
-    radio.sendString(str_data_req)
+    let recevicedString = serial.readLine()
+    CommonReceivedString(recevicedString)
 }
-
-
-
