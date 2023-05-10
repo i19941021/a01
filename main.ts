@@ -98,10 +98,8 @@ function Start() {
         SerialPin.USB_RX,
         BaudRate.BaudRate115200
     )
-    music.playMelody("E D G F B A C5 B ", 240)
-    radio.setGroup(0)
 
-    input.setAccelerometerRange(AcceleratorRange.OneG )
+    radio.setGroup(0)
 
 }
 function Update() {
