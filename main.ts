@@ -15,7 +15,6 @@ Start()
 function NewResponse(code:number,data: object){
     let ret_data :object ={
         "retcode": code,
-        
         "msg":retcode_list[code], 
         "data" :data
     }
