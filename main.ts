@@ -132,5 +132,7 @@ function Update() {
         RemoteCall("ButtonBPressed", null)
     }
     let recevicedString = serial.readLine()
-    CommonReceivedString(recevicedString)
+    if (recevicedString != ""){
+        CommonReceivedString(recevicedString)
+    }
 }
